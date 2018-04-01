@@ -145,6 +145,7 @@
     <string name="new_playlist">New playlist</string>
     <string name="share">Share</string>
     <string name="delete_from_device">Delete from device</string>
+    <string name="remove_from_queue">Remove from queue</string>
 
     <string name="nothing_found">Nothing found</string>
     <string name="folders">Folders</string>
@@ -162,5 +163,8 @@
     <string name="menu_show_lyrics">Show lyrics</string>
     <string name="no_lyrics">No lyrics found.</string>
     <string name="lyrics_makeitpersonal">Powered by <a href="https://makeitpersonal.co/">makeitpersonal.co</a></string>
+    <string name="cast">Cast</string>
+    <string name="now_playing_no_track_selected">\"No current track selected.</string>
+    <string name="lyrics_loading">Loading...</string>
 
 </resources>

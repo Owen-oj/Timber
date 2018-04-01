@@ -38,10 +38,16 @@ import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.naman14.timber.MusicPlayer;
 import com.naman14.timber.R;
+import com.naman14.timber.adapters.BaseQueueAdapter;
+import com.naman14.timber.adapters.BaseSongAdapter;
 import com.naman14.timber.provider.RecentStore;
 import com.naman14.timber.provider.SongPlayCount;
 
 import java.io.File;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.Collections;
+import java.util.List;
 
 public class TimberUtils {
 
@@ -224,7 +230,7 @@ public class TimberUtils {
                 .setLastAddedCutoff(System.currentTimeMillis());
     }
 
-    public static void showDeleteDialog(final Context context, final String name, final long[] list, final RecyclerView.Adapter adapter, final int pos) {
+    public static void showDeleteDialog(final Context context, final String name, final long[] list, final BaseSongAdapter adapter, final int pos) {
 
         new MaterialDialog.Builder(context)
                 .title("Delete song?")
@@ -235,7 +241,9 @@ public class TimberUtils {
                     @Override
                     public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
                         TimberUtils.deleteTracks(context, list);
+                        adapter.removeSongAt(pos);
                         adapter.notifyItemRemoved(pos);
+                        adapter.notifyItemRangeChanged(pos, adapter.getItemCount());
                     }
                 })
                 .onNegative(new MaterialDialog.SingleButtonCallback() {
@@ -245,10 +253,34 @@ public class TimberUtils {
                     }
                 })
                 .show();
-
-
-
     }
+
+    public static void showDeleteDialog(final Context context, final String name, final long[] list, final BaseQueueAdapter qAdapter, final int pos) {
+
+        new MaterialDialog.Builder(context)
+                .title("Delete song?")
+                .content("Are you sure you want to delete " + name + " ?")
+                .positiveText("Delete")
+                .negativeText("Cancel")
+                .onPositive(new MaterialDialog.SingleButtonCallback() {
+                    @Override
+                    public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
+                        TimberUtils.deleteTracks(context, list);
+                        qAdapter.removeSongAt(pos);
+                        qAdapter.notifyItemRemoved(pos);
+                        qAdapter.notifyItemRangeChanged(pos, qAdapter.getItemCount());
+                    }
+                })
+                .onNegative(new MaterialDialog.SingleButtonCallback() {
+                    @Override
+                    public void onClick(@NonNull MaterialDialog dialog, @NonNull DialogAction which) {
+                        dialog.dismiss();
+                    }
+                })
+                .show();
+    }
+
+
     public static void deleteTracks(final Context context, final long[] list) {
         final String[] projection = new String[]{
                 BaseColumns._ID, MediaStore.MediaColumns.DATA, MediaStore.Audio.AudioColumns.ALBUM_ID
@@ -312,6 +344,17 @@ public class TimberUtils {
 
     public static void shareTrack(final Context context, long id) {
 
+        try {
+            Intent share = new Intent(Intent.ACTION_SEND);
+            share.setType("audio/*");
+            share.putExtra(Intent.EXTRA_STREAM, getSongUri(context, id));
+            context.startActivity(Intent.createChooser(share, "Share"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static Uri getSongUri(Context context, long id) {
         final String[] projection = new String[]{
                 BaseColumns._ID, MediaStore.MediaColumns.DATA, MediaStore.Audio.AudioColumns.ALBUM_ID
         };
@@ -324,19 +367,48 @@ public class TimberUtils {
                 null, null);
 
         if (c == null) {
-            return;
+            return null;
         }
         c.moveToFirst();
+
+
         try {
-            Intent share = new Intent(Intent.ACTION_SEND);
-            share.setType("audio/*");
-            share.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(new File(c.getString(1))));
-            context.startActivity(Intent.createChooser(share, "Share"));
+
+            Uri uri = Uri.parse(c.getString(1));
             c.close();
+
+            return uri;
         } catch (Exception e) {
             e.printStackTrace();
+            return null;
         }
     }
 
+    public static String getIPAddress(boolean useIPv4) {
+        try {
+            List<NetworkInterface> interfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
+            for (NetworkInterface intf : interfaces) {
+                List<InetAddress> addrs = Collections.list(intf.getInetAddresses());
+                for (InetAddress addr : addrs) {
+                    if (!addr.isLoopbackAddress()) {
+                        String sAddr = addr.getHostAddress();
+                        //boolean isIPv4 = InetAddressUtils.isIPv4Address(sAddr);
+                        boolean isIPv4 = sAddr.indexOf(':')<0;
+
+                        if (useIPv4) {
+                            if (isIPv4)
+                                return sAddr;
+                        } else {
+                            if (!isIPv4) {
+                                int delim = sAddr.indexOf('%'); // drop ip6 zone suffix
+                                return delim<0 ? sAddr.toUpperCase() : sAddr.substring(0, delim).toUpperCase();
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) { }
+        return "";
+    }
 
 }

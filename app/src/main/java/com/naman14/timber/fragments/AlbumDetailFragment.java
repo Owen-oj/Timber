@@ -40,12 +40,15 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.afollestad.appthemeengine.ATE;
 import com.afollestad.appthemeengine.Config;
 import com.naman14.timber.MusicPlayer;
 import com.naman14.timber.R;
+import com.naman14.timber.activities.MainActivity;
 import com.naman14.timber.adapters.AlbumSongsAdapter;
 import com.naman14.timber.dataloaders.AlbumLoader;
 import com.naman14.timber.dataloaders.AlbumSongLoader;
+import com.naman14.timber.dialogs.AddPlaylistDialog;
 import com.naman14.timber.listeners.SimplelTransitionListener;
 import com.naman14.timber.models.Album;
 import com.naman14.timber.models.Song;
@@ -68,21 +71,22 @@ import java.util.List;
 
 public class AlbumDetailFragment extends Fragment {
 
-    long albumID = -1;
+    private long albumID = -1;
 
-    ImageView albumArt, artistArt;
-    TextView albumTitle, albumDetails;
+    private ImageView albumArt, artistArt;
+    private TextView albumTitle, albumDetails;
+    private AppCompatActivity mContext;
 
-    RecyclerView recyclerView;
-    AlbumSongsAdapter mAdapter;
+    private RecyclerView recyclerView;
+    private AlbumSongsAdapter mAdapter;
 
-    Toolbar toolbar;
+    private Toolbar toolbar;
 
-    Album album;
+    private Album album;
 
-    CollapsingToolbarLayout collapsingToolbarLayout;
-    AppBarLayout appBarLayout;
-    FloatingActionButton fab;
+    private CollapsingToolbarLayout collapsingToolbarLayout;
+    private AppBarLayout appBarLayout;
+    private FloatingActionButton fab;
 
     private boolean loadFailed = false;
 
@@ -108,6 +112,7 @@ public class AlbumDetailFragment extends Fragment {
             albumID = getArguments().getLong(Constants.ALBUM_ID);
         }
         context = getActivity();
+        mContext = (AppCompatActivity) context;
         mPreferences = PreferencesUtility.getInstance(context);
     }
 
@@ -207,18 +212,20 @@ public class AlbumDetailFragment extends Fragment {
                                                                                   }
                                                                               }
 
-                                                                              MaterialDrawableBuilder builder = MaterialDrawableBuilder.with(getActivity())
-                                                                                      .setIcon(MaterialDrawableBuilder.IconValue.SHUFFLE)
-                                                                                      .setSizeDp(30);
-                                                                              if (primaryColor != -1) {
-                                                                                  builder.setColor(TimberUtils.getBlackWhiteColor(primaryColor));
-                                                                                  ATEUtils.setFabBackgroundTint(fab, primaryColor);
-                                                                                  fab.setImageDrawable(builder.build());
-                                                                              } else {
-                                                                                  if (context != null) {
-                                                                                      ATEUtils.setFabBackgroundTint(fab, Config.accentColor(context, Helpers.getATEKey(context)));
-                                                                                      builder.setColor(TimberUtils.getBlackWhiteColor(Config.accentColor(context, Helpers.getATEKey(context))));
+                                                                              if (getActivity() != null) {
+                                                                                  MaterialDrawableBuilder builder = MaterialDrawableBuilder.with(getActivity())
+                                                                                          .setIcon(MaterialDrawableBuilder.IconValue.SHUFFLE)
+                                                                                          .setSizeDp(30);
+                                                                                  if (primaryColor != -1) {
+                                                                                      builder.setColor(TimberUtils.getBlackWhiteColor(primaryColor));
+                                                                                      ATEUtils.setFabBackgroundTint(fab, primaryColor);
                                                                                       fab.setImageDrawable(builder.build());
+                                                                                  } else {
+                                                                                      if (context != null) {
+                                                                                          ATEUtils.setFabBackgroundTint(fab, Config.accentColor(context, Helpers.getATEKey(context)));
+                                                                                          builder.setColor(TimberUtils.getBlackWhiteColor(Config.accentColor(context, Helpers.getATEKey(context))));
+                                                                                          fab.setImageDrawable(builder.build());
+                                                                                      }
                                                                                   }
                                                                               }
                                                                           }
@@ -296,6 +303,8 @@ public class AlbumDetailFragment extends Fragment {
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.album_detail, menu);
+        if (getActivity() != null)
+            ATE.applyMenu(getActivity(), "dark_theme", menu);
     }
 
     @Override
@@ -303,6 +312,12 @@ public class AlbumDetailFragment extends Fragment {
         switch (item.getItemId()) {
             case R.id.menu_go_to_artist:
                 NavigationUtils.goToArtist(getContext(), album.artistId);
+                break;
+            case R.id.popup_song_addto_queue:
+                MusicPlayer.addToQueue(context, mAdapter.getSongIds(), -1, TimberUtils.IdType.NA);
+                break;
+            case R.id.popup_song_addto_playlist:
+                AddPlaylistDialog.newInstance(mAdapter.getSongIds()).show(mContext.getSupportFragmentManager(), "ADD_PLAYLIST");
                 break;
             case R.id.menu_sort_by_az:
                 mPreferences.setAlbumSongSortOrder(SortOrder.AlbumSongSortOrder.SONG_A_Z);
@@ -331,11 +346,11 @@ public class AlbumDetailFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        String ateKey = Helpers.getATEKey(getActivity());
         toolbar.setBackgroundColor(Color.TRANSPARENT);
         if (primaryColor != -1 && getActivity() != null) {
             collapsingToolbarLayout.setContentScrimColor(primaryColor);
             ATEUtils.setFabBackgroundTint(fab, primaryColor);
-            String ateKey = Helpers.getATEKey(getActivity());
             ATEUtils.setStatusBarColor(getActivity(), ateKey, primaryColor);
         }
 

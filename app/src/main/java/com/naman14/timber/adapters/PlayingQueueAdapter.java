@@ -18,6 +18,7 @@ import android.app.Activity;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -41,6 +42,7 @@ import com.nostra13.universalimageloader.core.ImageLoader;
 import java.util.List;
 
 public class PlayingQueueAdapter extends RecyclerView.Adapter<PlayingQueueAdapter.ItemHolder> {
+    private static final String TAG = "PlayingQueueAdapter";
 
     public int currentlyPlayingPosition;
     private List<Song> arraylist;
@@ -80,7 +82,9 @@ public class PlayingQueueAdapter extends RecyclerView.Adapter<PlayingQueueAdapte
             itemHolder.title.setTextColor(Config.textColorPrimary(mContext, ateKey));
             itemHolder.visualizer.setVisibility(View.GONE);
         }
-        ImageLoader.getInstance().displayImage(TimberUtils.getAlbumArtUri(localItem.albumId).toString(), itemHolder.albumArt, new DisplayImageOptions.Builder().cacheInMemory(true).showImageOnFail(R.drawable.ic_empty_music2).resetViewBeforeLoading(true).build());
+        ImageLoader.getInstance().displayImage(TimberUtils.getAlbumArtUri(localItem.albumId).toString(),
+                itemHolder.albumArt, new DisplayImageOptions.Builder().cacheInMemory(true)
+                        .showImageOnLoading(R.drawable.ic_empty_music2).resetViewBeforeLoading(true).build());
         setOnPopupMenuListener(itemHolder, i);
     }
 
@@ -95,6 +99,12 @@ public class PlayingQueueAdapter extends RecyclerView.Adapter<PlayingQueueAdapte
                     @Override
                     public boolean onMenuItemClick(MenuItem item) {
                         switch (item.getItemId()) {
+                            case R.id.popup_song_remove_queue:
+                                Log.v(TAG,"Removing " + position);
+                                MusicPlayer.removeTrackAtPosition(getSongAt(position).id, position);
+                                removeSongAt(position);
+                                notifyItemRemoved(position);
+                                break;
                             case R.id.popup_song_play:
                                 MusicPlayer.playAll(mContext, getSongIds(), position, -1, TimberUtils.IdType.NA, false);
                                 break;
@@ -106,10 +116,6 @@ public class PlayingQueueAdapter extends RecyclerView.Adapter<PlayingQueueAdapte
                                 break;
                             case R.id.popup_song_addto_playlist:
                                 AddPlaylistDialog.newInstance(arraylist.get(position)).show(((AppCompatActivity) mContext).getSupportFragmentManager(), "ADD_PLAYLIST");
-                                break;
-                            case R.id.popup_song_delete:
-                                long[] deleteIds = {arraylist.get(position).id};
-                                TimberUtils.showDeleteDialog(mContext,arraylist.get(position).title, deleteIds, PlayingQueueAdapter.this,position);
                                 break;
                         }
                         return false;

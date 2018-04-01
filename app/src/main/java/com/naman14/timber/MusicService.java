@@ -62,7 +62,6 @@ import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
-import android.support.v7.app.NotificationCompat;
 import android.support.v7.graphics.Palette;
 import android.text.TextUtils;
 import android.util.Log;
@@ -333,6 +332,8 @@ public class MusicService extends Service {
         filter.addAction(PREVIOUS_FORCE_ACTION);
         filter.addAction(REPEAT_ACTION);
         filter.addAction(SHUFFLE_ACTION);
+        filter.addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
+        filter.addAction(Intent.ACTION_SCREEN_ON);
         // Attach the broadcast listener
         registerReceiver(mIntentReceiver, filter);
 
@@ -568,6 +569,11 @@ public class MusicService extends Service {
             cycleShuffle();
         } else if (UPDATE_PREFERENCES.equals(action)) {
             onPreferencesUpdate(intent.getExtras());
+        }
+        else if (AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(action)) {
+            if (PreferencesUtility.getInstance(getApplicationContext()).pauseEnabledOnDetach()) {
+                pause();
+            }
         }
     }
 
@@ -1286,7 +1292,7 @@ public class MusicService extends Service {
 
         if (TimberUtils.isLollipop()) {
             builder.setVisibility(Notification.VISIBILITY_PUBLIC);
-            NotificationCompat.MediaStyle style = new NotificationCompat.MediaStyle()
+            android.support.v4.media.app.NotificationCompat.MediaStyle style = new android.support.v4.media.app.NotificationCompat.MediaStyle()
                     .setMediaSession(mSession.getSessionToken())
                     .setShowActionsInCompactView(0, 1, 2, 3);
             builder.setStyle(style);
@@ -2852,5 +2858,4 @@ public class MusicService extends Service {
             refresh();
         }
     }
-
 }
